@@ -88,6 +88,16 @@ python main7.py
 
 Uma janela com a imagem da webcam vai abrir. Se o sistema pedir permissão de câmera, aceite.
 
+> **Atenção:** Se você estiver usando uma única webcam no computador, a função: 
+> ```python
+> captura = cv2.VideoCapture(1)
+> ```
+> Deve ser alterada para:
+> ```python
+> captura = cv2.VideoCapture(0)
+> ```
+> No caso de exitir 2 webcam, você pode escolher entre os parâmetros 0 ou 1 (0 = primeira câmera; 1 = segunda câmera)
+
 ### 3. Tela inicial (só na v7)
 Ao abrir o programa, escolha se você é **Destro** ou **Canhoto**, clicando no botão correspondente com o mouse ou pressionando `D` ou `C` no teclado. Essa escolha define qual mão desenha e qual mão configura o resto da sessão. `ESC` ou `Q` nessa tela fecham o programa sem abrir a câmera de desenho.
 

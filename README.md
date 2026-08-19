@@ -80,7 +80,7 @@ Isso instala exatamente as versões testadas: `opencv-python`, `mediapipe==0.10.
 
 ### 3. Executando
 
-A versão recomendada pra apresentação é a `main7.py` (a mais completa e a mais estável no reconhecimento):
+A versão recomendada pra apresentação é a `main7.py` (a mais completa e a mais estável no reconhecimento), portanto abra a pasta `versions/v7`:
 
 ```bash
 python main7.py

@@ -1,21 +1,9 @@
 """
-Desenho por Gestos - Semana Aberta
-
 Controles:
     - Dedo indicador levantado sozinho  -> Desenhar
-    - Mao aberta (4 dedos levantados)   -> Apagar (a borracha segue o centro da mao)
+    - Mao aberta (4 dedos levantados)   -> Apagar (a borracha segue o centro da mão)
     - Tecla 'c'                         -> Limpar a tela toda
     - Tecla 'q' ou ESC                  -> Sair
-
-Como funciona (resumo):
-    1. A webcam captura o video frame a frame.
-    2. O MediaPipe encontra os 21 pontos (landmarks) da mao em cada frame.
-    3. Comparamos a posicao da PONTA de cada dedo com a JUNTA logo abaixo dela
-       pra saber se o dedo esta esticado (levantado) ou dobrado (abaixado).
-    4. Combinando quais dedos estao levantados, decidimos o "modo" atual
-       (desenhar, apagar ou ocioso).
-    5. O desenho fica guardado em uma camada separada (o "canvas"), que e
-       sobreposta ao video em tempo real, como se fosse tinta sobre o vidro.
 """
 
 import time
@@ -26,19 +14,17 @@ import mediapipe as mp
 
 # =================================================================================
 # CONFIGURACOES GERAIS
-# (deixei tudo separado aqui em cima pra facilitar quando forem adicionar
-#  novas funcoes, tipo troca de cor, tamanho do pincel variavel, etc.)
 # =================================================================================
 
 LARGURA_CAM = 1280
 ALTURA_CAM = 720
 
-COR_PINCEL = (255, 0, 255)     # cor do desenho em BGR (magenta) - ponto de extensao futura
+COR_PINCEL = (255, 0, 255)     # cor do desenho em BGR (magenta)
 ESPESSURA_PINCEL = 8           # espessura do traco
 RAIO_BORRACHA = 60             # raio (em pixels) do circulo que apaga
 
-MIN_CONFIANCA_DETECCAO = 0.7   # confianca minima pra considerar que achou uma mao
-MIN_CONFIANCA_RASTREIO = 0.6   # confianca minima pra continuar rastreando a mao
+MIN_CONFIANCA_DETECCAO = 0.7   # confianca mínima pra considerar que achou uma mao
+MIN_CONFIANCA_RASTREIO = 0.6   # confianca mínima pra continuar rastreando a mao
 
 
 # =================================================================================
@@ -47,7 +33,7 @@ MIN_CONFIANCA_RASTREIO = 0.6   # confianca minima pra continuar rastreando a mao
 
 def dedos_levantados(hand_landmarks, mao_label):
     """
-    Recebe os 21 landmarks (pontos) de UMA mao e a label ("Right"/"Left") e
+    Recebe os 21 landmarks (pontos) de UMA mão e a label ("Right"/"Left") e
     devolve uma lista de 5 posicoes: [polegar, indicador, medio, anelar, minimo],
     onde 1 significa "dedo levantado" e 0 significa "dedo abaixado".
 
@@ -101,7 +87,7 @@ def identificar_modo(dedos):
 
 def mesclar_canvas_no_frame(frame, canvas):
     """
-    Sobrepoe o desenho (canvas) no video (frame), como se o desenho fosse
+    Sobrepõe o desenho (canvas) no video (frame), como se o desenho fosse
     tinta em cima do vidro da camera, e nao so uma soma de cores.
     """
     canvas_cinza = cv2.cvtColor(canvas, cv2.COLOR_BGR2GRAY)
@@ -114,7 +100,7 @@ def mesclar_canvas_no_frame(frame, canvas):
 
 
 def desenhar_hud(frame, modo_atual, fps):
-    """Desenha a barra de informacoes no topo e as instrucoes no rodape."""
+    """Desenha a barra de informações no topo e as instruções no rodapé."""
     altura, largura = frame.shape[:2]
 
     cv2.rectangle(frame, (0, 0), (largura, 40), (30, 30, 30), -1)
@@ -138,8 +124,8 @@ def main():
     captura.set(cv2.CAP_PROP_FRAME_HEIGHT, ALTURA_CAM)
 
     if not captura.isOpened():
-        print("Nao foi possivel abrir a webcam. Verifique se ela esta conectada")
-        print("e se nenhum outro programa (Zoom, Teams, etc.) esta usando ela.")
+        print("Não foi possivel abrir a webcam. Verifique se ela está conectada")
+        print("e se nenhum outro programa está usando ela.")
         return
 
     mp_hands = mp.solutions.hands
@@ -163,7 +149,7 @@ def main():
     while True:
         ok, frame = captura.read()
         if not ok:
-            print("Nao consegui ler o frame da camera.")
+            print("Nao consegui ler o frame da câmera.")
             break
 
         frame = cv2.flip(frame, 1)  # espelha o video (fica mais natural, tipo espelho)
@@ -220,7 +206,7 @@ def main():
 
         desenhar_hud(frame_final, modo_atual, fps)
 
-        cv2.imshow("Desenho por Gestos - Semana Aberta", frame_final)
+        cv2.imshow("Projeto Semana Aberta v2", frame_final)
 
         tecla = cv2.waitKey(1) & 0xFF
         if tecla == ord('q') or tecla == 27:  # ESC

@@ -1,13 +1,14 @@
 """
-Desenho por Gestos (v4) - Semana Aberta
+Desenho por Gestos (v5) - Semana Aberta
 
 Controles com DUAS maos:
 
-  MAO DIREITA (desenho):
+  MAO ESQUERDA (desenho):
       - Dedo indicador levantado sozinho  -> Desenhar
       - Mao aberta (4 dedos levantados)   -> Borracha local (segue o centro da palma)
+      - Joia / thumbs-up (polegar pra cima)-> Salvar o desenho na galeria
 
-  MAO ESQUERDA (configuracao):
+  MAO DIREITA (configuracao):
       - Indicador no topo da tela          -> Seleciona cor na paleta
       - Pinca (polegar + indicador)        -> Ajusta tamanho do bico do lapis
       - Mao aberta (4 dedos levantados)    -> Apaga TUDO (limpa o canvas inteiro)
@@ -15,12 +16,12 @@ Controles com DUAS maos:
   Teclado:
       - Tecla 'c'       -> Limpar a tela toda
       - Tecla 'q' / ESC -> Sair
-
-Baseado no v2/main2.py (estrutura limpa + funcoes de apoio).
 """
 
 import time
 import math
+import os
+from datetime import datetime
 
 import cv2
 import numpy as np
@@ -30,8 +31,8 @@ import mediapipe as mp
 # CONFIGURACOES GERAIS
 # =================================================================================
 
-LARGURA_CAM = 1280
-ALTURA_CAM = 720
+LARGURA_CAM = 1920
+ALTURA_CAM = 1080
 
 COR_PINCEL_INICIAL = (255, 0, 255)   # magenta (BGR)
 ESPESSURA_PINCEL_INICIAL = 15        # espessura padrao do traco
@@ -39,6 +40,10 @@ RAIO_BORRACHA = 60                   # raio do circulo-borracha (mao direita abe
 
 MIN_CONFIANCA_DETECCAO = 0.7
 MIN_CONFIANCA_RASTREIO = 0.6
+
+# Pasta onde os desenhos salvos (galeria) serao guardados
+PASTA_GALERIA = os.path.join(os.path.dirname(os.path.abspath(__file__)), "galeria")
+COOLDOWN_SALVAR = 2.0   # segundos entre cada salvamento (evita spam)
 
 # Paleta de cores (BGR) exibida no topo da tela
 PALETA_CORES = [
@@ -96,7 +101,7 @@ def mao_do_usuario(hand_label):
       - O que o MP chama de 'Left'  e a mao DIREITA do usuario.
       - O que o MP chama de 'Right' e a mao ESQUERDA do usuario.
     """
-    return "direita" if hand_label == "Left" else "esquerda"
+    return "esquerda" if hand_label == "Right" else "direita"
 
 
 def mesclar_canvas_no_frame(frame, canvas):
@@ -111,6 +116,20 @@ def mesclar_canvas_no_frame(frame, canvas):
     frame_sem_area_do_desenho = cv2.bitwise_and(frame, mascara_inv)
     frame_final = cv2.bitwise_or(frame_sem_area_do_desenho, canvas)
     return frame_final
+
+
+def salvar_desenho(frame_final):
+    """
+    Salva o frame atual (com o desenho mesclado) na pasta 'galeria'.
+    O nome do arquivo contem data e hora para nao sobrescrever.
+    Retorna o caminho do arquivo salvo.
+    """
+    os.makedirs(PASTA_GALERIA, exist_ok=True)
+    agora = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    nome_arquivo = f"desenho_{agora}.png"
+    caminho = os.path.join(PASTA_GALERIA, nome_arquivo)
+    cv2.imwrite(caminho, frame_final)
+    return caminho
 
 
 def desenhar_paleta(frame, cor_selecionada):
@@ -154,9 +173,9 @@ def desenhar_hud(frame, modo_atual, fps, cor_pincel, espessura):
                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
 
     # Instrucoes
-    instrucoes = "Dir: Indicador=Desenhar  Palma=Borracha | Esq: Paleta  Pinca=Tamanho  Aberta=Limpar"
+    instrucoes = "Dir: Indicador=Desenhar  Palma=Borracha  Joia=Salvar | Esq: Paleta  Pinca=Tamanho  Aberta=Limpar"
     cv2.putText(frame, instrucoes, (10, altura - 55),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 255, 255), 1)
+                cv2.FONT_HERSHEY_SIMPLEX, 0.42, (0, 255, 255), 1)
 
 
 # =================================================================================
@@ -164,7 +183,7 @@ def desenhar_hud(frame, modo_atual, fps, cor_pincel, espessura):
 # =================================================================================
 
 def main():
-    captura = cv2.VideoCapture(0)
+    captura = cv2.VideoCapture(1)
     captura.set(cv2.CAP_PROP_FRAME_WIDTH, LARGURA_CAM)
     captura.set(cv2.CAP_PROP_FRAME_HEIGHT, ALTURA_CAM)
 
@@ -195,9 +214,14 @@ def main():
     ultimo_clear = 0.0
     COOLDOWN_CLEAR = 1.5  # segundos
 
+    # Cooldown e feedback visual para o gesto de "salvar" (joia)
+    ultimo_salvar = 0.0
+    flash_salvo_ate = 0.0     # timestamp ate quando mostrar o feedback "SALVO!"
+    ultimo_caminho_salvo = ""  # caminho do ultimo arquivo salvo
+
     print("=== Desenho por Gestos v4 - Semana Aberta ===")
     print("Tudo pronto! Use as DUAS maos para controlar.")
-    print("  Mao DIREITA : indicador = desenhar / palma aberta = borracha")
+    print("  Mao DIREITA : indicador = desenhar / palma aberta = borracha / joia = salvar")
     print("  Mao ESQUERDA: paleta de cor / pinca = tamanho / mao aberta = limpar tudo")
     print("  Teclado     : C = limpar | Q ou ESC = sair")
     print()
@@ -272,7 +296,22 @@ def main():
                         cv2.circle(frame, (cx, cy), RAIO_BORRACHA, (255, 255, 255), 2)
                         ponto_anterior = None
 
-                    # C) Qualquer outra pose -> ocioso
+                    # C) JOIA (polegar levantado, outros fechados) -> SALVAR
+                    elif dedos == [1, 0, 0, 0, 0]:
+                        modo_direita = "joia - salvar!"
+                        ponto_anterior = None
+
+                        agora = time.time()
+                        if agora - ultimo_salvar > COOLDOWN_SALVAR:
+                            # Mescla o frame atual com o canvas pra salvar a imagem completa
+                            imagem_para_salvar = mesclar_canvas_no_frame(frame, canvas)
+                            caminho = salvar_desenho(imagem_para_salvar)
+                            ultimo_salvar = agora
+                            flash_salvo_ate = agora + 1.5
+                            ultimo_caminho_salvo = caminho
+                            print(f"Desenho salvo em: {caminho}")
+
+                    # D) Qualquer outra pose -> ocioso
                     else:
                         modo_direita = "ocioso"
                         ponto_anterior = None
@@ -358,7 +397,21 @@ def main():
         tempo_anterior = tempo_atual
         desenhar_hud(frame_final, modo_atual, fps, cor_pincel, espessura_pincel)
 
-        cv2.imshow("Desenho por Gestos v4 - Semana Aberta", frame_final)
+        # Feedback visual: flash verde "SALVO!" quando salva com joia
+        if time.time() < flash_salvo_ate:
+            overlay = frame_final.copy()
+            cv2.rectangle(overlay, (largura // 2 - 220, altura // 2 - 50),
+                          (largura // 2 + 220, altura // 2 + 50), (0, 80, 0), cv2.FILLED)
+            cv2.addWeighted(overlay, 0.7, frame_final, 0.3, 0, frame_final)
+            cv2.putText(frame_final, "SALVO NA GALERIA",
+                        (largura // 2 - 190, altura // 2 + 15),
+                        cv2.FONT_HERSHEY_SIMPLEX, 1.2, (0, 255, 0), 3)
+            # Mostra o icone de joinha
+            cv2.putText(frame_final, "(Y)",
+                        (largura // 2 - 200, altura // 2 + 15),
+                        cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 255, 0), 2)
+
+        cv2.imshow("Projeto Semana Aberta v5", frame_final)
 
         tecla = cv2.waitKey(1) & 0xFF
         if tecla == ord('q') or tecla == 27:

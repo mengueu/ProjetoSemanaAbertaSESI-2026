@@ -14,7 +14,7 @@ cap = cv2.VideoCapture(0)
 success, img = cap.read()
 h, w, c = img.shape
 
-# Criando um "quadro em branco" (canvas) onde os desenhos vão ficar salvos
+# Criando um "quadro em branco" onde os desenhos vão ficar salvos
 canvas = np.zeros((h, w, c), np.uint8)
 
 # Variáveis para guardar a posição anterior do dedo (para traçar a linha)
@@ -37,7 +37,7 @@ while True:
     # Se uma mão for detectada
     if results.multi_hand_landmarks:
         for hand_landmarks in results.multi_hand_landmarks:
-            # Desenha os pontos e conexões da mão na tela (opcional, mas legal para apresentação)
+            # Desenha os pontos e conexões da mão na tela
             mp_draw.draw_landmarks(img, hand_landmarks, mp_hands.HAND_CONNECTIONS)
             
             # Pegando as coordenadas de todos os pontos da mão
@@ -100,7 +100,7 @@ while True:
     img = cv2.bitwise_or(img, canvas)
 
     # Mostra o resultado final na tela
-    cv2.imshow("Quadro Interativo - Semana Aberta", img)
+    cv2.imshow("Projeto Semana Aberta v1", img)
     
     # Pressione 'q' no teclado para fechar
     if cv2.waitKey(1) & 0xFF == ord('q'):

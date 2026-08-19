@@ -31,7 +31,7 @@ for i in range(len(colors)):
     # Adiciona as coordenadas de cada retângulo (x_inicial, y_inicial, x_final, y_final)
     color_rects.append((i * step, 0, (i + 1) * step, 80)) 
 
-print("🎥 Câmera iniciada! Pressione 'q' para sair.")
+print("Câmera iniciada! Pressione 'q' para sair.")
 
 while True:
     success, img = cap.read()
@@ -151,7 +151,7 @@ while True:
     img = cv2.bitwise_and(img, imgInv)
     img = cv2.bitwise_or(img, canvas)
 
-    cv2.imshow("Quadro Interativo - Semana Aberta", img)
+    cv2.imshow("Projeto Semana Aberta v3", img)
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
